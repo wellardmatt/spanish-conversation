@@ -341,11 +341,33 @@
   }
 
   try {
-    bindClick(micBtn, function () { toggleMic(); });
-    bindClick(sendBtn, function () { handleSend(); });
     bindClick(apiKeyBtn, function () { openApiModal(); });
     bindClick(apiCancel, function () { closeApiModal(); });
     bindClick(apiSave, function () { saveApiKey(); });
+
+    (function () {
+      var lastMic = 0, lastSend = 0;
+      function onceMic() {
+        var t = Date.now();
+        if (t - lastMic < 400) return;
+        lastMic = t;
+        toggleMic();
+      }
+      function onceSend() {
+        var t = Date.now();
+        if (t - lastSend < 400) return;
+        lastSend = t;
+        handleSend();
+      }
+      if (micBtn) {
+        micBtn.addEventListener('click', function (e) { e.preventDefault(); onceMic(); });
+        micBtn.addEventListener('touchend', function (e) { e.preventDefault(); onceMic(); }, { passive: false });
+      }
+      if (sendBtn) {
+        sendBtn.addEventListener('click', function (e) { e.preventDefault(); onceSend(); });
+        sendBtn.addEventListener('touchend', function (e) { e.preventDefault(); onceSend(); }, { passive: false });
+      }
+    })();
 
     if (userInput) {
       userInput.addEventListener('keydown', function (e) {
