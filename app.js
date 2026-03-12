@@ -327,41 +327,37 @@
     }
   }
 
-  function addTap(el, fn) {
-    if (!el) return;
-    var last = 0;
-    function run(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      var now = Date.now();
-      if (now - last < 400) return;
-      last = now;
-      fn(e);
-    }
-    el.addEventListener('pointerup', run, { passive: false });
-    el.addEventListener('touchend', run, { passive: false });
-    el.addEventListener('click', run, { passive: false });
-  }
-
-  addTap(micBtn, toggleMic);
-
-  addTap(sendBtn, handleSend);
-
-  userInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  });
-
-  addTap(apiKeyBtn, openApiModal);
-  addTap(apiCancel, closeApiModal);
-  addTap(apiSave, saveApiKey);
-
   window.openApiModal = openApiModal;
   window.closeApiModal = closeApiModal;
   window.saveApiKey = saveApiKey;
   window.toggleMic = toggleMic;
+  window.handleSend = handleSend;
+
+  function bindClick(el, fn) {
+    if (!el) return;
+    el.addEventListener('click', function (e) {
+      fn(e);
+    });
+  }
+
+  try {
+    bindClick(micBtn, function () { toggleMic(); });
+    bindClick(sendBtn, function () { handleSend(); });
+    bindClick(apiKeyBtn, function () { openApiModal(); });
+    bindClick(apiCancel, function () { closeApiModal(); });
+    bindClick(apiSave, function () { saveApiKey(); });
+
+    if (userInput) {
+      userInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleSend();
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Button bind error', err);
+  }
 
   (function checkApiKey() {
     var params = new URLSearchParams(window.location.search);
