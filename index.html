@@ -150,6 +150,9 @@
       display: flex;
       gap: 10px;
       align-items: flex-end;
+      position: relative;
+      z-index: 20;
+      flex-shrink: 0;
     }
 
     .input-wrap {
@@ -348,7 +351,7 @@
       <div class="input-wrap">
         <textarea id="userInput" rows="1" placeholder="Escribe o usa el micrófono..." autocomplete="off"></textarea>
       </div>
-      <button type="button" class="mic-btn" id="micBtn" title="Hablar" aria-label="Hablar" onclick="window.toggleMic && window.toggleMic()">🎤</button>
+      <button type="button" class="mic-btn" id="micBtn" title="Hablar" aria-label="Hablar">🎤</button>
       <button type="button" class="send-btn" id="sendBtn" title="Enviar" aria-label="Enviar">➤</button>
     </div>
   </div>
