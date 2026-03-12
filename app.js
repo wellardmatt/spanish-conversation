@@ -50,6 +50,9 @@
         userInput.value = text;
         setStatus('');
         stopListening();
+        if (text.trim()) {
+          setTimeout(function () { handleSend(); }, 100);
+        }
       } else {
         setStatus('Escuchando: ' + text + '…');
       }
