@@ -66,9 +66,17 @@
         const base = voiceSessionStart.trim();
         userInput.value = base ? base + ' ' + lastTranscript : lastTranscript;
       }
+      recognition = null;
     };
     rec.onerror = function (e) {
+      if (e.error === 'aborted') {
+        setStatus('');
+        recognition = null;
+        stopListening();
+        return;
+      }
       setStatus('Error de voz: ' + (e.error || 'desconocido'));
+      recognition = null;
       stopListening();
     };
     return rec;
