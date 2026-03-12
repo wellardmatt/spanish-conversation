@@ -30,6 +30,7 @@
   let isListening = false;
   let lastTranscript = '';
   let voiceSessionStart = '';
+  let listeningStartedAt = 0;
 
   function setStatus(text) {
     statusEl.textContent = text || '';
@@ -91,6 +92,7 @@
       return;
     }
     isListening = true;
+    listeningStartedAt = Date.now();
     lastTranscript = '';
     voiceSessionStart = (userInput.value || '').trim();
     micBtn.classList.add('listening');
@@ -100,6 +102,7 @@
       recognition.start();
     } catch (err) {
       setStatus('No se pudo iniciar el micrófono.');
+      recognition = null;
       stopListening();
     }
   }
@@ -108,7 +111,10 @@
     isListening = false;
     micBtn.classList.remove('listening');
     micBtn.setAttribute('aria-label', 'Hablar');
-    if (recognition) try { recognition.stop(); } catch (_) {}
+    if (recognition) {
+      try { recognition.stop(); } catch (_) {}
+      recognition = null;
+    }
   }
 
   function initTTS() {
@@ -311,8 +317,13 @@
   }
 
   function toggleMic() {
-    if (isListening) stopListening();
-    else startListening();
+    if (isListening) {
+      var elapsed = Date.now() - listeningStartedAt;
+      if (elapsed < 500) return;
+      stopListening();
+    } else {
+      startListening();
+    }
   }
 
   function addTap(el, fn) {
@@ -330,7 +341,17 @@
     el.addEventListener('click', run, { passive: false });
   }
 
-  addTap(micBtn, toggleMic);
+  micBtn.addEventListener('pointerup', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var now = Date.now();
+    if (now - (micBtn._lastMicTap || 0) < 500) return;
+    micBtn._lastMicTap = now;
+    toggleMic();
+  }, { passive: false });
+  micBtn.addEventListener('click', function (e) {
+    e.preventDefault();
+  }, { passive: false });
 
   addTap(sendBtn, handleSend);
 
