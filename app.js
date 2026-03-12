@@ -320,7 +320,7 @@
   function toggleMic() {
     if (isListening) {
       var elapsed = Date.now() - listeningStartedAt;
-      if (elapsed < 500) return;
+      if (elapsed < 400) return;
       stopListening();
     } else {
       startListening();
@@ -339,24 +339,11 @@
       fn(e);
     }
     el.addEventListener('pointerup', run, { passive: false });
+    el.addEventListener('touchend', run, { passive: false });
     el.addEventListener('click', run, { passive: false });
   }
 
-  micBtn.addEventListener('pointerup', function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    var now = Date.now();
-    if (isListening) {
-      toggleMic();
-    } else {
-      if (now - (micBtn._lastMicTap || 0) < 300) return;
-      micBtn._lastMicTap = now;
-      toggleMic();
-    }
-  }, { passive: false });
-  micBtn.addEventListener('click', function (e) {
-    e.preventDefault();
-  }, { passive: false });
+  addTap(micBtn, toggleMic);
 
   addTap(sendBtn, handleSend);
 
