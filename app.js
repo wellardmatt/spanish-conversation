@@ -2,14 +2,15 @@
   'use strict';
 
   const API_KEY_STORAGE = 'spanish_app_openai_key';
-  const SYSTEM_PROMPT = `Eres un compañero de conversación en español. Tu rol es:
-1. Hablar siempre en español (España o latino neutro, según prefiera el usuario).
-2. Cuando el usuario diga algo en español, si hay errores (gramática, ortografía, uso), responde con naturalidad y en tu primer párrafo incluye una corrección breve y amable en este formato exacto:
-   [CORRECCIÓN: <aquí la versión corregida de su frase>]
-   Luego sigue la conversación con normalidad.
-3. Si su español es correcto, no pongas [CORRECCIÓN: ...]. Simplemente responde.
-4. Mantén respuestas concisas (2-4 frases) para que sean fáciles de escuchar.
-5. Varía los temas: preguntas sobre el día, planes, gustos, noticias, etc.`;
+  const SYSTEM_PROMPT = `You are a Spanish conversation partner and language tutor.
+
+1. LANGUAGE USE:
+   - If the user writes or speaks in SPANISH: reply in Spanish. Correct any errors gently using this format in your first paragraph when needed: [CORRECCIÓN: <corrected version of their phrase>]. Then continue the conversation naturally.
+   - If the user writes or speaks in ENGLISH to ask about the language (e.g. "How do I say X?", "What's the difference between ser and estar?", "Why is it subjunctive here?"): answer in English with clear explanations and Spanish examples. Keep answers concise (2–5 sentences) so they are easy to hear when read aloud.
+
+2. PRONUNCIATION / MISHEARINGS: If what they said in Spanish looks like it could be a mishearing or pronunciation issue (e.g. wrong word that sounds similar), gently give the correct form and optionally say how to pronounce it. Use [CORRECCIÓN: ...] for the correct phrase.
+
+3. Keep replies concise (2–4 sentences) so they work well when read aloud. Vary topics when chatting in Spanish: day, plans, preferences, news, etc.`;
 
   const messagesEl = document.getElementById('messages');
   const userInput = document.getElementById('userInput');
@@ -28,7 +29,7 @@
   let recognition = null;
   let isListening = false;
   let lastTranscript = '';
-  let sentThisSession = false;
+  let voiceSessionStart = '';
 
   function setStatus(text) {
     statusEl.textContent = text || '';
@@ -49,25 +50,21 @@
       const last = e.results.length - 1;
       const text = (e.results[last][0].transcript || '').trim();
       lastTranscript = text;
+      const base = voiceSessionStart.trim();
+      const newContent = base ? base + ' ' + text : text;
+      userInput.value = newContent;
       if (e.results[last].isFinal) {
-        userInput.value = text;
         setStatus('');
         stopListening();
-        if (text && !sentThisSession) {
-          sentThisSession = true;
-          setTimeout(function () { handleSend(); }, 100);
-        }
       } else {
-        userInput.value = text;
         setStatus('Escuchando: ' + text + '…');
       }
     };
     rec.onend = function () {
       if (isListening) stopListening();
-      if (!sentThisSession && lastTranscript.trim()) {
-        userInput.value = lastTranscript;
-        sentThisSession = true;
-        handleSend();
+      if (lastTranscript.trim()) {
+        const base = voiceSessionStart.trim();
+        userInput.value = base ? base + ' ' + lastTranscript : lastTranscript;
       }
     };
     rec.onerror = function (e) {
@@ -87,7 +84,7 @@
     }
     isListening = true;
     lastTranscript = '';
-    sentThisSession = false;
+    voiceSessionStart = (userInput.value || '').trim();
     micBtn.classList.add('listening');
     micBtn.setAttribute('aria-label', 'Parar');
     setStatus('Habla ahora…');
@@ -149,8 +146,15 @@
     if (role === 'you' && correction) {
       html += '<div class="correction"><strong>Corregido:</strong> ' + escapeHtml(correction) + '</div>';
     }
+    if (role === 'bot' && text) {
+      html += ' <button type="button" class="speak-again" title="Escuchar de nuevo" aria-label="Escuchar de nuevo">🔊</button>';
+    }
     div.innerHTML = html;
     messagesEl.appendChild(div);
+    if (role === 'bot') {
+      var btn = div.querySelector('.speak-again');
+      if (btn) btn.addEventListener('click', function () { speak(text); });
+    }
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
