@@ -168,9 +168,59 @@
     messagesEl.appendChild(div);
     if (role === 'bot') {
       var btn = div.querySelector('.speak-again');
-      if (btn) btn.addEventListener('click', function () { speak(text); });
+      if (btn) btn.addEventListener('click', function (e) { e.stopPropagation(); speak(text); });
+      div.classList.add('msg-tappable');
+      div.setAttribute('data-msg-text', text);
+      div.addEventListener('click', function (e) {
+        if (e.target.closest('.speak-again')) return;
+        showOrFetchBreakdown(div);
+      });
     }
     messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  var BREAKDOWN_PROMPT = 'Break down this Spanish text for an English learner. Reply in English with exactly three short sections:\n\n1) **Meaning:** (translation or plain-English summary)\n2) **Tenses:** (list the verb tenses used, e.g. present, preterite, imperfect, subjunctive)\n3) **Grammar:** (2–4 brief grammar points: e.g. word order, object pronouns, ser/estar, subjunctive trigger)\n\nKeep each section to 1–3 sentences. Text to break down:\n\n';
+
+  async function fetchBreakdown(spanishText) {
+    var key = getApiKey();
+    if (!key) return null;
+    var res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: BREAKDOWN_PROMPT + spanishText }],
+        max_tokens: 350,
+        temperature: 0.3
+      })
+    });
+    if (!res.ok) return null;
+    var data = await res.json();
+    return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) ? data.choices[0].message.content.trim() : null;
+  }
+
+  function showOrFetchBreakdown(msgDiv) {
+    var text = msgDiv.getAttribute('data-msg-text');
+    if (!text) return;
+    var next = msgDiv.nextElementSibling;
+    if (next && next.classList.contains('msg-breakdown')) {
+      next.classList.toggle('msg-breakdown-open');
+      return;
+    }
+    var box = document.createElement('div');
+    box.className = 'msg-breakdown msg-breakdown-open';
+    box.innerHTML = '<div class="msg-breakdown-loading">Loading breakdown…</div>';
+    msgDiv.parentNode.insertBefore(box, msgDiv.nextSibling);
+    fetchBreakdown(text).then(function (content) {
+      if (content) {
+        box.innerHTML = '<div class="msg-breakdown-content">' + content.replace(/\n/g, '<br>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>') + '</div>';
+      } else {
+        box.innerHTML = '<div class="msg-breakdown-content">Could not load breakdown.</div>';
+      }
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }).catch(function () {
+      box.innerHTML = '<div class="msg-breakdown-content">Could not load breakdown.</div>';
+    });
   }
 
   function appendCorrectionToLastYouMessage(correction) {
